@@ -3,14 +3,14 @@
 
 FinSights is a modern, full-stack financial intelligence tool that transforms static, complex bank statements (PDFs) into interactive, actionable visual insights. Using **Google Gemini AI**, it automatically extracts transaction ledgers, daily burn rates, and financial runway predictions to help you understand your spending patterns at a glance.
 
-![FinSights UI](https://img.shields.io/badge/Tech-React%20%7C%20Node.js%20%7C%20Gemini%20AI-blueviolet)
+![FinSights UI](https://img.shields.io/badge/Tech-React%20%7C%20Node.js%20%7C%%-blueviolet)
 ![Status](https://img.shields.io/badge/Status-Live-success)
 
 ---
 
 ## ✨ Key Features
 
-- **🧠 AI-Driven Extraction**: Leverages `gemini-2.0-flash-lite` to parse complex PDF bank statements with high accuracy.
+- **🧠 AI-Driven Extraction**: Leverages to parse complex PDF bank statements with high accuracy.
 - **🗺️ Interactive Spending Treemap**: Visualize your transaction ledger using a D3.js-powered treemap, grouped by categories and merchants.
 - **⚡ Real-time Analysis**: Watch the progress in real-time as the AI processes your data.
 - **⛽ Burn Rate Gauge**: Track your monthly spending versus credits with a sleek, interactive gauge.
