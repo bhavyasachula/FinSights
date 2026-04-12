@@ -103,7 +103,7 @@ FinSights implements a dual-role system:
     - Issue a "Clear Data" signal (though financial data is never persisted).
 
 > [!TIP]
-> **Admin Secret**: Registering with the email `admin@finsights.com` automatically grants the `admin` role.
+> **Admin Secret**: Registering with the admin email  automatically grants the `admin` role.
 
 ---
 
