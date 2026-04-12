@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/analyze': 'http://localhost:3001'
+      '/analyze': 'http://localhost:3001',
+      '/api': 'http://localhost:3001'
     }
   }
 })

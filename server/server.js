@@ -6,7 +6,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadEnvFile } from 'process';
-
+import nocache from "nocache"
+import mongoose from 'mongoose';
+import authRoutes from './routes/auth.js';
+import { protect } from './middleware/auth.js';
 // Load environment variables from .env file
 loadEnvFile();
 
@@ -22,7 +25,15 @@ const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(nocache());
 
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('✅ Connected to MongoDB'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// Routes
+app.use('/api/auth', authRoutes);
 // Multer setup for file uploads
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -62,7 +73,7 @@ Structure:
     "runway_months": number
   },
   "ledger": [
-    { "category": "String", "value": number, "color": "HexCode" }
+    { "category": "String", "value": number }
   ],
   "merchants": [
     { "name": "String", "total_spend": number }
@@ -266,7 +277,7 @@ async function analyzePDFWithRetry(filePath, retries = 3) {
 }
 
 // POST /analyze route
-app.post('/analyze', upload.single('file'), async (req, res) => {
+app.post('/analyze', protect, upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.json({ error: 'No PDF file uploaded' });
     }
