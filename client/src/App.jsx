@@ -9,6 +9,7 @@ import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
+import LogoutModal from './components/LogoutModal';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, role }) => {
@@ -27,6 +28,7 @@ function MainApp() {
     const [error, setError] = useState(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const navigate = useNavigate();
 
     const handleFile = useCallback(async (file) => {
@@ -85,6 +87,10 @@ function MainApp() {
     }, []);
 
     const handleLogout = () => {
+        setIsLogoutModalOpen(true);
+    };
+
+    const confirmLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/');
@@ -280,6 +286,11 @@ function MainApp() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <LogoutModal 
+                isOpen={isLogoutModalOpen}
+                onConfirm={confirmLogout}
+                onCancel={() => setIsLogoutModalOpen(false)}
+            />
         </div>
     );
 }

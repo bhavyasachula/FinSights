@@ -61,8 +61,29 @@ router.get('/me', protect, (req, res) => {
 // GET /api/auth/admin/users
 router.get('/admin/users', protect, adminOnly, async (req, res) => {
     try {
-        const users = await User.find({ role: 'user' }).select('name email createdAt');
+        // Find all users except the one making the request
+        const users = await User.find({ _id: { $ne: req.user._id } }).select('name email role createdAt');
         res.json({ users });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /api/auth/admin/users/:id/role
+router.patch('/admin/users/:id/role', protect, adminOnly, async (req, res) => {
+    try {
+        const { role } = req.body;
+        if (!['user', 'admin'].includes(role)) {
+            return res.status(400).json({ error: 'Invalid role' });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        user.role = role;
+        await user.save();
+
+        res.json({ message: `User role updated to ${role}`, user });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -73,7 +94,6 @@ router.delete('/admin/users/:id', protect, adminOnly, async (req, res) => {
     try {
         const deleted = await User.findByIdAndDelete(req.params.id);
         if (!deleted) return res.status(404).json({ error: 'User not found' });
-        // Clear any in-memory session data for that user if desired (no-op here, data is transient)
         res.json({ message: 'User deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });

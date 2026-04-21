@@ -79,7 +79,7 @@ FinSights is a professional, full-stack financial intelligence platform that tra
 
 1. **Start the Server** (from `/server`):
    ```bash
-   npm run dev
+   npm start
    ```
 
 2. **Start the Frontend** (from `/client`):

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import LogoutModal from './LogoutModal';
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -54,6 +56,29 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleToggleRole = async (userId, currentRole) => {
+        const newRole = currentRole === 'admin' ? 'user' : 'admin';
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/auth/admin/users/${userId}/role`, {
+                method: 'PATCH',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ role: newRole })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to update role');
+
+            setUsers(users.map(u => u._id === userId ? { ...u, role: newRole } : u));
+            setMessage(`User promoted to ${newRole} successfully`);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const handleClearMemory = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -69,6 +94,10 @@ const AdminDashboard = () => {
     };
 
     const handleLogout = () => {
+        setIsLogoutModalOpen(true);
+    };
+
+    const confirmLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/login');
@@ -102,6 +131,7 @@ const AdminDashboard = () => {
                                     <tr>
                                         <th>Name</th>
                                         <th>Email</th>
+                                        <th>Role</th>
                                         <th>Joined At</th>
                                         <th>Actions</th>
                                     </tr>
@@ -115,8 +145,19 @@ const AdminDashboard = () => {
                                         <tr key={user._id}>
                                             <td>{user.name}</td>
                                             <td>{user.email}</td>
-                                            <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                                             <td>
+                                                <span className={`role-badge ${user.role}`}>
+                                                    {user.role}
+                                                </span>
+                                            </td>
+                                            <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                                            <td className="table-actions">
+                                                <button 
+                                                    onClick={() => handleToggleRole(user._id, user.role)}
+                                                    className={`btn-role ${user.role === 'admin' ? 'revoke' : 'promote'}`}
+                                                >
+                                                    {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                                                </button>
                                                 <button 
                                                     onClick={() => handleDeleteUser(user._id)}
                                                     className="btn-delete"
@@ -132,6 +173,11 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </div>
+            <LogoutModal 
+                isOpen={isLogoutModalOpen}
+                onConfirm={confirmLogout}
+                onCancel={() => setIsLogoutModalOpen(false)}
+            />
         </div>
     );
 };
