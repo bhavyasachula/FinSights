@@ -79,19 +79,7 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleClearMemory = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/auth/admin/clear-data', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            setMessage(data.message);
-        } catch (err) {
-            setError('Failed to clear memory');
-        }
-    };
+
 
     const handleLogout = () => {
         setIsLogoutModalOpen(true);
@@ -110,9 +98,6 @@ const AdminDashboard = () => {
                 <header className="admin-header">
                     <h1>Admin Dashboard</h1>
                     <div className="admin-actions">
-                        <button onClick={handleClearMemory} className="btn-secondary">
-                            Clear In-Memory Data
-                        </button>
                         <button onClick={handleLogout} className="btn-logout">
                             Logout
                         </button>

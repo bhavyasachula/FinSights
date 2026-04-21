@@ -29,6 +29,7 @@ function MainApp() {
     const [isDragOver, setIsDragOver] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [showAlreadyClearDialog, setShowAlreadyClearDialog] = useState(false);
     const navigate = useNavigate();
 
     const handleFile = useCallback(async (file) => {
@@ -86,6 +87,14 @@ function MainApp() {
         }
     }, []);
 
+    const handleClearMemory = () => {
+        if (!data) {
+            setShowAlreadyClearDialog(true);
+        } else {
+            setData(null);
+        }
+    };
+
     const handleLogout = () => {
         setIsLogoutModalOpen(true);
     };
@@ -116,8 +125,9 @@ function MainApp() {
                         <div className="upload-page">
                             <div className="upload-bg-gradient" />
 
-                            {/* Top-right logout button */}
+                            {/* Top-right buttons */}
                             <div className="upload-topbar">
+                                <button onClick={handleClearMemory} className="upload-clear-btn">🗑 Clear Memory</button>
                                 <button onClick={handleLogout} className="upload-logout-btn">Logout</button>
                             </div>
 
@@ -260,6 +270,7 @@ function MainApp() {
                         <header className="mb-8 flex items-center justify-between">
                             <h1 className="brand-title">FinSights</h1>
                             <div className="flex gap-4">
+                                <button onClick={handleClearMemory} className="upload-clear-btn">🗑 Clear Memory</button>
                                 <button onClick={() => setData(null)} className="upload-new-btn">Upload New</button>
                                 <button onClick={handleLogout} className="btn-logout">Logout</button>
                             </div>
@@ -291,6 +302,41 @@ function MainApp() {
                 onConfirm={confirmLogout}
                 onCancel={() => setIsLogoutModalOpen(false)}
             />
+
+            {/* Already Clear Dialog */}
+            <AnimatePresence>
+                {showAlreadyClearDialog && (
+                    <motion.div
+                        className="modal-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowAlreadyClearDialog(false)}
+                    >
+                        <motion.div
+                            className="already-clear-dialog"
+                            initial={{ opacity: 0, scale: 0.85, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.85, y: 20 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="already-clear-icon">✅</div>
+                            <h3 className="already-clear-title">Memory Already Clear</h3>
+                            <p className="already-clear-desc">
+                                There is no financial data currently loaded in memory.
+                                Upload a bank statement to get started.
+                            </p>
+                            <button
+                                className="already-clear-btn"
+                                onClick={() => setShowAlreadyClearDialog(false)}
+                            >
+                                Got it
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
