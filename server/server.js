@@ -225,6 +225,7 @@ async function analyzePDFWithRetry(filePath, retries = 3) {
 
         const response = await genAI.models.generateContent({
             model: 'gemini-2.5-flash-lite',
+            /* working gemini-3.1-flash-lite */
             contents: [
                 {
                     role: 'user',
