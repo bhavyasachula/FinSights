@@ -56,6 +56,58 @@ router.get('/me', protect, (req, res) => {
     res.json({ user: req.user });
 });
 
+// ── Profile Routes ────────────────────────────────────
+
+// PUT /api/auth/profile — update name
+router.put('/profile', protect, async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Name is required' });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        user.name = name.trim();
+        await user.save();
+
+        res.json({
+            user: { id: user._id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/auth/password — change password
+router.put('/password', protect, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Current password and new password are required' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'New password must be at least 6 characters' });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        res.json({ message: 'Password updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── Admin Routes ──────────────────────────────────────
 
 // GET /api/auth/admin/users
