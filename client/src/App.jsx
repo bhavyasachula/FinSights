@@ -9,6 +9,7 @@ import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
+import Profile from './components/Profile';
 import LogoutModal from './components/LogoutModal';
 
 // Protected Route Wrapper
@@ -111,6 +112,41 @@ function MainApp() {
             : 0;
     }, [data]);
 
+    const handleDownloadCSV = useCallback(() => {
+        if (!data?.ledger?.length) return;
+
+        const rows = data.ledger.map((item, i) => ({
+            '#': i + 1,
+            Category: item.category,
+            'Amount (₹)': item.value,
+        }));
+
+        // Append summary as extra rows at the bottom
+        if (data.summary) {
+            rows.push({ '#': '', Category: '', 'Amount (₹)': '' });
+            rows.push({ '#': '', Category: 'Total Credit', 'Amount (₹)': data.summary.total_credit });
+            rows.push({ '#': '', Category: 'Total Debit', 'Amount (₹)': data.summary.total_debit });
+            rows.push({ '#': '', Category: 'Current Balance', 'Amount (₹)': data.summary.current_balance });
+            rows.push({ '#': '', Category: 'Monthly Burn Rate', 'Amount (₹)': data.summary.monthly_burn_rate });
+        }
+
+        // Build CSV inline — no external dependency needed
+        const fields = ['#', 'Category', 'Amount (₹)'];
+        const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const csv = [
+            fields.map(escape).join(','),
+            ...rows.map(r => fields.map(f => escape(r[f])).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `FinSights_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }, [data]);
+
     return (
         <div className="app-container">
             <AnimatePresence mode="wait">
@@ -127,8 +163,9 @@ function MainApp() {
 
                             {/* Top-right buttons */}
                             <div className="upload-topbar">
-                                <button onClick={handleClearMemory} className="upload-clear-btn">🗑 Clear Memory</button>
-                                <button onClick={handleLogout} className="upload-logout-btn">Logout</button>
+                                <button onClick={() => navigate('/profile')} className="btn-profile" id="profile-btn">
+                                    {JSON.parse(localStorage.getItem('user'))?.name?.charAt(0)?.toUpperCase() || '?'}
+                                </button>
                             </div>
 
                             <div className="upload-content">
@@ -270,9 +307,11 @@ function MainApp() {
                         <header className="mb-8 flex items-center justify-between">
                             <h1 className="brand-title">FinSights</h1>
                             <div className="flex gap-4">
-                                <button onClick={handleClearMemory} className="upload-clear-btn">🗑 Clear Memory</button>
+                                <button onClick={handleDownloadCSV} className="btn-download-report" id="download-report-btn">Download Report</button>
                                 <button onClick={() => setData(null)} className="upload-new-btn">Upload New</button>
-                                <button onClick={handleLogout} className="btn-logout">Logout</button>
+                                <button onClick={() => navigate('/profile')} className="btn-profile" id="profile-btn">
+                                    {JSON.parse(localStorage.getItem('user'))?.name?.charAt(0)?.toUpperCase() || '?'}
+                                </button>
                             </div>
                         </header>
 
@@ -297,7 +336,7 @@ function MainApp() {
                     </motion.div>
                 )}
             </AnimatePresence>
-            <LogoutModal 
+            <LogoutModal
                 isOpen={isLogoutModalOpen}
                 onConfirm={confirmLogout}
                 onCancel={() => setIsLogoutModalOpen(false)}
@@ -351,6 +390,11 @@ function App() {
                 <Route path="/upload" element={
                     <ProtectedRoute role="user">
                         <MainApp />
+                    </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                    <ProtectedRoute>
+                        <Profile />
                     </ProtectedRoute>
                 } />
                 <Route path="/admin" element={
