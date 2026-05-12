@@ -29,8 +29,8 @@ app.use(nocache());
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ Connected to MongoDB'))
-    .catch(err => console.error('❌ MongoDB connection error:', err));
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -225,9 +225,8 @@ async function analyzePDFWithRetry(filePath, retries = 3) {
 
         const response = await genAI.models.generateContent({
             model: 'gemini-2.5-flash-lite',
-            /* working model  gemini-3.1-flash-lite  */
+            /* working model  gemini-3.1-flash-lite-preview  */
             contents: [
-
                 {
                     role: 'user',
                     parts: [
@@ -321,9 +320,9 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 FinSights server running on http://localhost:${PORT}`);
+    console.log(`FinSights server running on http://localhost:${PORT}`);
     if (!process.env.GEMINI_API_KEY) {
-        console.warn('⚠️  Warning: GEMINI_API_KEY environment variable not set');
+        console.warn('Warning: GEMINI_API_KEY environment variable not set');
     }
 });
 console.log("http://localhost:5173/.");

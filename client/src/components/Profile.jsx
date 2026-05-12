@@ -318,7 +318,7 @@ export default function Profile({ handleLogout, handleClearMemory, hasData }) {
                     {/* Account & System Actions Card */}
                     <div className="profile-card glass-card">
                         <h3 className="profile-card-title">Account & System</h3>
-                        
+
                         <div className="profile-actions-stack">
                             <div className="profile-action-item">
                                 <div className="profile-action-info">
@@ -326,7 +326,7 @@ export default function Profile({ handleLogout, handleClearMemory, hasData }) {
                                     <p className="profile-action-desc">Clear all currently loaded financial data from local memory.</p>
                                 </div>
                                 <button onClick={handleClearMemory} className="upload-clear-btn" id="profile-clear-btn">
-                                    {hasData ? '🗑 Clear Data' : 'Memory is Clear'}
+                                    {hasData ? '🗑 Clear Data' : 'Clear Memory Data'}
                                 </button>
                             </div>
 
