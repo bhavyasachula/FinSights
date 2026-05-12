@@ -23,14 +23,11 @@ const ProtectedRoute = ({ children, role }) => {
     return children;
 };
 
-function MainApp() {
-    const [data, setData] = useState(null);
+function MainApp({ data, setData, handleLogout, handleClearMemory }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [showAlreadyClearDialog, setShowAlreadyClearDialog] = useState(false);
     const navigate = useNavigate();
 
     const handleFile = useCallback(async (file) => {
@@ -86,25 +83,7 @@ function MainApp() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
-
-    const handleClearMemory = () => {
-        if (!data) {
-            setShowAlreadyClearDialog(true);
-        } else {
-            setData(null);
-        }
-    };
-
-    const handleLogout = () => {
-        setIsLogoutModalOpen(true);
-    };
-
-    const confirmLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
-    };
+    }, [setData]);
 
     const runwayMonths = useMemo(() => {
         return data?.summary?.monthly_burn_rate > 0
@@ -336,13 +315,114 @@ function MainApp() {
                     </motion.div>
                 )}
             </AnimatePresence>
+        </div>
+    );
+}
+
+function RootApp() {
+    const [data, setDataRaw] = useState(null);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [showAlreadyClearDialog, setShowAlreadyClearDialog] = useState(false);
+    const navigate = useNavigate();
+
+    // On mount: only restore data if a valid auth token exists for the current session.
+    // This prevents a previous user's data from leaking into a new login.
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const userId = JSON.parse(localStorage.getItem('user'))?._id;
+                const saved = sessionStorage.getItem(`finsights_data_${userId}`);
+                if (saved) setDataRaw(JSON.parse(saved));
+            } catch { /* ignore */ }
+        } else {
+            // No token → clear any lingering session data
+            sessionStorage.removeItem('finsights_data');
+        }
+    }, []);
+
+    const setData = useCallback((value) => {
+        const userId = JSON.parse(localStorage.getItem('user'))?._id;
+        const key = `finsights_data_${userId}`;
+        setDataRaw(value);
+        if (value) {
+            sessionStorage.setItem(key, JSON.stringify(value));
+        } else {
+            if (userId) sessionStorage.removeItem(key);
+            // Also clear legacy key if present
+            sessionStorage.removeItem('finsights_data');
+        }
+    }, []);
+
+    const handleClearMemory = () => {
+        if (!data) {
+            setShowAlreadyClearDialog(true);
+        } else {
+            setData(null);
+        }
+    };
+
+    const handleLogout = () => {
+        setIsLogoutModalOpen(true);
+    };
+
+    const confirmLogout = () => {
+        // Determine the user-specific session key before clearing user info
+        let userId;
+        try { userId = JSON.parse(localStorage.getItem('user'))?._id; } catch { /* ignore */ }
+
+        // Clear auth
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+
+        // Clear this user's session data and reset in-memory state
+        if (userId) sessionStorage.removeItem(`finsights_data_${userId}`);
+        sessionStorage.removeItem('finsights_data'); // legacy key
+        setDataRaw(null); // <-- reset React state so next user starts fresh
+
+        setIsLogoutModalOpen(false);
+        navigate('/');
+    };
+
+    return (
+        <>
+            <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/upload" element={
+                    <ProtectedRoute role="user">
+                        <MainApp 
+                            data={data} 
+                            setData={setData} 
+                            handleLogout={handleLogout} 
+                            handleClearMemory={handleClearMemory} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                    <ProtectedRoute>
+                        <Profile 
+                            handleLogout={handleLogout} 
+                            handleClearMemory={handleClearMemory} 
+                            hasData={!!data} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                    <ProtectedRoute role="admin">
+                        <AdminDashboard />
+                    </ProtectedRoute>
+                } />
+                <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+
             <LogoutModal
                 isOpen={isLogoutModalOpen}
                 onConfirm={confirmLogout}
                 onCancel={() => setIsLogoutModalOpen(false)}
             />
 
-            {/* Already Clear Dialog */}
             <AnimatePresence>
                 {showAlreadyClearDialog && (
                     <motion.div
@@ -376,34 +456,14 @@ function MainApp() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </>
     );
 }
 
 function App() {
     return (
         <Router>
-            <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/upload" element={
-                    <ProtectedRoute role="user">
-                        <MainApp />
-                    </ProtectedRoute>
-                } />
-                <Route path="/profile" element={
-                    <ProtectedRoute>
-                        <Profile />
-                    </ProtectedRoute>
-                } />
-                <Route path="/admin" element={
-                    <ProtectedRoute role="admin">
-                        <AdminDashboard />
-                    </ProtectedRoute>
-                } />
-                <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+            <RootApp />
         </Router>
     );
 }
