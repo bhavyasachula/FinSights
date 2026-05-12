@@ -1162,6 +1162,7 @@ background: linear-gradient(135deg, #ffffff 0%, #c0c0c0 50%, #8a8aff 100%);
 }
 
 .role-badge.user {
+  margin: auto;
   background: rgba(58, 134, 255, 0.15);
   color: var(--neon-blue);
   border: 1px solid rgba(58, 134, 255, 0.3);
