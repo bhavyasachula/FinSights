@@ -325,42 +325,58 @@ function RootApp() {
     const [showAlreadyClearDialog, setShowAlreadyClearDialog] = useState(false);
     const navigate = useNavigate();
 
-    // On mount: only restore data if a valid auth token exists for the current session.
-    // This prevents a previous user's data from leaking into a new login.
+    // On mount: restore data only when the user has NOT explicitly cleared it this session.
     useEffect(() => {
+        // One-time migration: remove stale entries written under 'undefined' userId (old bug)
+        sessionStorage.removeItem('finsights_data_undefined');
+        sessionStorage.removeItem('finsights_cleared_undefined');
+
         const token = localStorage.getItem('token');
         if (token) {
             try {
-                const userId = JSON.parse(localStorage.getItem('user'))?._id;
+                const storedUser = JSON.parse(localStorage.getItem('user'));
+                // Auth server stores id as 'id' (not '_id')
+                const userId = storedUser?.id ?? storedUser?._id;
+                const clearedFlag = sessionStorage.getItem(`finsights_cleared_${userId}`);
+                // Respect the explicit "Upload New" / "Clear Memory" action → don't restore
+                if (clearedFlag) return;
                 const saved = sessionStorage.getItem(`finsights_data_${userId}`);
                 if (saved) setDataRaw(JSON.parse(saved));
             } catch { /* ignore */ }
         } else {
-            // No token → clear any lingering session data
             sessionStorage.removeItem('finsights_data');
         }
     }, []);
 
     const setData = useCallback((value) => {
-        const userId = JSON.parse(localStorage.getItem('user'))?._id;
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const userId = storedUser?.id ?? storedUser?._id;
         const key = `finsights_data_${userId}`;
+        const clearedKey = `finsights_cleared_${userId}`;
         setDataRaw(value);
         if (value) {
+            // New data uploaded — remove the cleared flag so future reloads restore it
             sessionStorage.setItem(key, JSON.stringify(value));
+            if (userId) sessionStorage.removeItem(clearedKey);
         } else {
-            if (userId) sessionStorage.removeItem(key);
-            // Also clear legacy key if present
+            // Explicit clear — write the flag so a reload stays on the upload page
+            if (userId) {
+                sessionStorage.removeItem(key);
+                sessionStorage.setItem(clearedKey, '1');
+            }
             sessionStorage.removeItem('finsights_data');
         }
     }, []);
 
-    const handleClearMemory = () => {
+    // useCallback keeps the closure over `data` always fresh (fixes stale-closure bug
+    // where Profile component saw data=null even when data was actually set).
+    const handleClearMemory = useCallback(() => {
         if (!data) {
             setShowAlreadyClearDialog(true);
         } else {
             setData(null);
         }
-    };
+    }, [data, setData]);
 
     const handleLogout = () => {
         setIsLogoutModalOpen(true);
@@ -369,16 +385,25 @@ function RootApp() {
     const confirmLogout = () => {
         // Determine the user-specific session key before clearing user info
         let userId;
-        try { userId = JSON.parse(localStorage.getItem('user'))?._id; } catch { /* ignore */ }
+        try {
+            const storedUser = JSON.parse(localStorage.getItem('user'));
+            userId = storedUser?.id ?? storedUser?._id;
+        } catch { /* ignore */ }
 
         // Clear auth
         localStorage.removeItem('token');
         localStorage.removeItem('user');
 
-        // Clear this user's session data and reset in-memory state
-        if (userId) sessionStorage.removeItem(`finsights_data_${userId}`);
-        sessionStorage.removeItem('finsights_data'); // legacy key
-        setDataRaw(null); // <-- reset React state so next user starts fresh
+        // Clear this user's session data, cleared-flag, and reset in-memory state
+        if (userId) {
+            sessionStorage.removeItem(`finsights_data_${userId}`);
+            sessionStorage.removeItem(`finsights_cleared_${userId}`);
+        }
+        // Also wipe legacy / undefined-keyed entries left from the old _id bug
+        sessionStorage.removeItem('finsights_data_undefined');
+        sessionStorage.removeItem('finsights_cleared_undefined');
+        sessionStorage.removeItem('finsights_data');
+        setDataRaw(null); // reset React state so next user starts fresh
 
         setIsLogoutModalOpen(false);
         navigate('/');
@@ -392,20 +417,20 @@ function RootApp() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/upload" element={
                     <ProtectedRoute role="user">
-                        <MainApp 
-                            data={data} 
-                            setData={setData} 
-                            handleLogout={handleLogout} 
-                            handleClearMemory={handleClearMemory} 
+                        <MainApp
+                            data={data}
+                            setData={setData}
+                            handleLogout={handleLogout}
+                            handleClearMemory={handleClearMemory}
                         />
                     </ProtectedRoute>
                 } />
                 <Route path="/profile" element={
                     <ProtectedRoute>
-                        <Profile 
-                            handleLogout={handleLogout} 
-                            handleClearMemory={handleClearMemory} 
-                            hasData={!!data} 
+                        <Profile
+                            handleLogout={handleLogout}
+                            handleClearMemory={handleClearMemory}
+                            hasData={!!data}
                         />
                     </ProtectedRoute>
                 } />
