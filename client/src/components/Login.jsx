@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { secureLocalStorage } from '../utils/security';
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -23,8 +24,8 @@ const Login = () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Login failed');
 
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            secureLocalStorage.setItem('token', data.token);
+            secureLocalStorage.setItem('user', JSON.stringify(data.user));
 
             if (data.user.role === 'admin') {
                 navigate('/admin');
@@ -41,7 +42,7 @@ const Login = () => {
     return (
         <div className="auth-page">
             <div className="upload-bg-gradient" />
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="auth-card glass-card"
@@ -52,9 +53,9 @@ const Login = () => {
                 <form onSubmit={handleSubmit} className="auth-form">
                     <div className="form-group">
                         <label>Email Address</label>
-                        <input 
-                            type="email" 
-                            required 
+                        <input
+                            type="email"
+                            required
                             placeholder="name@company.com"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -62,9 +63,9 @@ const Login = () => {
                     </div>
                     <div className="form-group">
                         <label>Password</label>
-                        <input 
-                            type="password" 
-                            required 
+                        <input
+                            type="password"
+                            required
                             placeholder="••••••••"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
