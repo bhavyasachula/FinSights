@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { secureLocalStorage } from '../utils/security';
 
 export default function Profile({ handleLogout, handleClearMemory, hasData }) {
     const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function Profile({ handleLogout, handleClearMemory, hasData }) {
     const [pwLoading, setPwLoading] = useState(false);
     const [pwMsg, setPwMsg] = useState({ type: '', text: '' });
 
-    const token = localStorage.getItem('token');
+    const token = secureLocalStorage.getItem('token');
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -62,8 +63,8 @@ export default function Profile({ handleLogout, handleClearMemory, hasData }) {
             if (res.ok) {
                 setUser(prev => ({ ...prev, name: data.user.name }));
                 // Sync localStorage
-                const stored = JSON.parse(localStorage.getItem('user'));
-                localStorage.setItem('user', JSON.stringify({ ...stored, name: data.user.name }));
+                const stored = JSON.parse(secureLocalStorage.getItem('user') || '{}');
+                secureLocalStorage.setItem('user', JSON.stringify({ ...stored, name: data.user.name }));
                 setIsEditingName(false);
                 setNameMsg({ type: 'success', text: 'Name updated successfully' });
             } else {
