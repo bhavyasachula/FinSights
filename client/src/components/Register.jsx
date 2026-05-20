@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { secureLocalStorage } from '../utils/security';
 
 const Register = () => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
@@ -23,8 +24,8 @@ const Register = () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Registration failed');
 
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            secureLocalStorage.setItem('token', data.token);
+            secureLocalStorage.setItem('user', JSON.stringify(data.user));
 
             navigate('/upload');
         } catch (err) {
