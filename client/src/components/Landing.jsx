@@ -44,7 +44,7 @@ const Landing = () => {
                         transition={{ duration: 0.8, delay: 0.1 }}
                         className="landing-badge"
                     >
-                        <span className="badge-dot" />
+
                         Privacy‑First · AI‑Powered · Zero Storage
                     </motion.div>
 
