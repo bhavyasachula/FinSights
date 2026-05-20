@@ -11,14 +11,16 @@ import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
 import Profile from './components/Profile';
 import LogoutModal from './components/LogoutModal';
+import { secureLocalStorage, secureSessionStorage } from './utils/security';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, role }) => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    const token = localStorage.getItem('token');
+    const userString = secureLocalStorage.getItem('user');
+    const user = userString ? JSON.parse(userString) : null;
+    const token = secureLocalStorage.getItem('token');
 
     if (!token) return <Navigate to="/login" />;
-    if (role && user.role !== role) return <Navigate to="/" />;
+    if (role && (!user || user.role !== role)) return <Navigate to="/" />;
 
     return children;
 };
@@ -53,7 +55,7 @@ function MainApp({ data, setData, handleLogout, handleClearMemory }) {
                 });
             }, 200);
 
-            const token = localStorage.getItem('token');
+            const token = secureLocalStorage.getItem('token');
             const response = await fetch('/analyze', {
                 method: 'POST',
                 headers: {
@@ -143,7 +145,7 @@ function MainApp({ data, setData, handleLogout, handleClearMemory }) {
                             {/* Top-right buttons */}
                             <div className="upload-topbar">
                                 <button onClick={() => navigate('/profile')} className="btn-profile" id="profile-btn">
-                                    {JSON.parse(localStorage.getItem('user'))?.name?.charAt(0)?.toUpperCase() || '?'}
+                                    {JSON.parse(secureLocalStorage.getItem('user') || '{}')?.name?.charAt(0)?.toUpperCase() || '?'}
                                 </button>
                             </div>
 
@@ -289,7 +291,7 @@ function MainApp({ data, setData, handleLogout, handleClearMemory }) {
                                 <button onClick={handleDownloadCSV} className="btn-download-report" id="download-report-btn">Download Report</button>
                                 <button onClick={() => setData(null)} className="upload-new-btn">Upload New</button>
                                 <button onClick={() => navigate('/profile')} className="btn-profile" id="profile-btn">
-                                    {JSON.parse(localStorage.getItem('user'))?.name?.charAt(0)?.toUpperCase() || '?'}
+                                    {JSON.parse(secureLocalStorage.getItem('user') || '{}')?.name?.charAt(0)?.toUpperCase() || '?'}
                                 </button>
                             </div>
                         </header>
@@ -328,43 +330,43 @@ function RootApp() {
     // On mount: restore data only when the user has NOT explicitly cleared it this session.
     useEffect(() => {
         // One-time migration: remove stale entries written under 'undefined' userId (old bug)
-        sessionStorage.removeItem('finsights_data_undefined');
-        sessionStorage.removeItem('finsights_cleared_undefined');
+        secureSessionStorage.removeItem('finsights_data_undefined');
+        secureSessionStorage.removeItem('finsights_cleared_undefined');
 
-        const token = localStorage.getItem('token');
+        const token = secureLocalStorage.getItem('token');
         if (token) {
             try {
-                const storedUser = JSON.parse(localStorage.getItem('user'));
+                const storedUser = JSON.parse(secureLocalStorage.getItem('user') || '{}');
                 // Auth server stores id as 'id' (not '_id')
                 const userId = storedUser?.id ?? storedUser?._id;
-                const clearedFlag = sessionStorage.getItem(`finsights_cleared_${userId}`);
+                const clearedFlag = secureSessionStorage.getItem(`finsights_cleared_${userId}`, userId);
                 // Respect the explicit "Upload New" / "Clear Memory" action → don't restore
                 if (clearedFlag) return;
-                const saved = sessionStorage.getItem(`finsights_data_${userId}`);
+                const saved = secureSessionStorage.getItem(`finsights_data_${userId}`, userId);
                 if (saved) setDataRaw(JSON.parse(saved));
             } catch { /* ignore */ }
         } else {
-            sessionStorage.removeItem('finsights_data');
+            secureSessionStorage.removeItem('finsights_data');
         }
     }, []);
 
     const setData = useCallback((value) => {
-        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const storedUser = JSON.parse(secureLocalStorage.getItem('user') || '{}');
         const userId = storedUser?.id ?? storedUser?._id;
         const key = `finsights_data_${userId}`;
         const clearedKey = `finsights_cleared_${userId}`;
         setDataRaw(value);
         if (value) {
             // New data uploaded — remove the cleared flag so future reloads restore it
-            sessionStorage.setItem(key, JSON.stringify(value));
-            if (userId) sessionStorage.removeItem(clearedKey);
+            secureSessionStorage.setItem(key, JSON.stringify(value), userId);
+            if (userId) secureSessionStorage.removeItem(clearedKey);
         } else {
             // Explicit clear — write the flag so a reload stays on the upload page
             if (userId) {
-                sessionStorage.removeItem(key);
-                sessionStorage.setItem(clearedKey, '1');
+                secureSessionStorage.removeItem(key);
+                secureSessionStorage.setItem(clearedKey, '1', userId);
             }
-            sessionStorage.removeItem('finsights_data');
+            secureSessionStorage.removeItem('finsights_data');
         }
     }, []);
 
@@ -386,23 +388,23 @@ function RootApp() {
         // Determine the user-specific session key before clearing user info
         let userId;
         try {
-            const storedUser = JSON.parse(localStorage.getItem('user'));
+            const storedUser = JSON.parse(secureLocalStorage.getItem('user') || '{}');
             userId = storedUser?.id ?? storedUser?._id;
         } catch { /* ignore */ }
 
         // Clear auth
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        secureLocalStorage.removeItem('token');
+        secureLocalStorage.removeItem('user');
 
         // Clear this user's session data, cleared-flag, and reset in-memory state
         if (userId) {
-            sessionStorage.removeItem(`finsights_data_${userId}`);
-            sessionStorage.removeItem(`finsights_cleared_${userId}`);
+            secureSessionStorage.removeItem(`finsights_data_${userId}`);
+            secureSessionStorage.removeItem(`finsights_cleared_${userId}`);
         }
         // Also wipe legacy / undefined-keyed entries left from the old _id bug
-        sessionStorage.removeItem('finsights_data_undefined');
-        sessionStorage.removeItem('finsights_cleared_undefined');
-        sessionStorage.removeItem('finsights_data');
+        secureSessionStorage.removeItem('finsights_data_undefined');
+        secureSessionStorage.removeItem('finsights_cleared_undefined');
+        secureSessionStorage.removeItem('finsights_data');
         setDataRaw(null); // reset React state so next user starts fresh
 
         setIsLogoutModalOpen(false);
