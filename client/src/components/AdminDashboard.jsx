@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import LogoutModal from './LogoutModal';
+import { secureLocalStorage } from '../utils/security';
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
@@ -12,7 +13,7 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user'));
+        const user = JSON.parse(secureLocalStorage.getItem('user') || '{}');
         if (!user || user.role !== 'admin') {
             navigate('/login');
             return;
@@ -22,7 +23,7 @@ const AdminDashboard = () => {
 
     const fetchUsers = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = secureLocalStorage.getItem('token');
             const res = await fetch('/api/auth/admin/users', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -40,7 +41,7 @@ const AdminDashboard = () => {
         if (!window.confirm('Are you sure you want to delete this user?')) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = secureLocalStorage.getItem('token');
             const res = await fetch(`/api/auth/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -59,7 +60,7 @@ const AdminDashboard = () => {
     const handleToggleRole = async (userId, currentRole) => {
         const newRole = currentRole === 'admin' ? 'user' : 'admin';
         try {
-            const token = localStorage.getItem('token');
+            const token = secureLocalStorage.getItem('token');
             const res = await fetch(`/api/auth/admin/users/${userId}/role`, {
                 method: 'PATCH',
                 headers: { 
@@ -86,8 +87,8 @@ const AdminDashboard = () => {
     };
 
     const confirmLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        secureLocalStorage.removeItem('token');
+        secureLocalStorage.removeItem('user');
         navigate('/login');
     };
 
