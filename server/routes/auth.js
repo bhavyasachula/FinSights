@@ -51,10 +51,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// GET /api/auth/me  — verify token & return user
-router.get('/me', protect, (req, res) => {
-    res.json({ user: req.user });
-});
 
 // ── Profile Routes ────────────────────────────────────
 
